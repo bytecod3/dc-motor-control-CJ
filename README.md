@@ -2,6 +2,8 @@
 DC motor control with PWM STM32
 
 ### Power supply design
+This board received power from a 12V DC supply that supplies the onboard devices and also supplies 
+the DC motor. I then step it down using a TPS54302 SMPS IC to 3.3V, 3A. This is enough to power the STM32F4 MCU.
 
 ### Current detection and proctection design
 To be able to do overcurent proctection, we have to have a means of measuring 
