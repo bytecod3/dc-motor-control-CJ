@@ -57,6 +57,16 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define DUTY_CTRL_Pin GPIO_PIN_4
+#define DUTY_CTRL_GPIO_Port GPIOA
+#define MOTOR_PWM_Pin GPIO_PIN_5
+#define MOTOR_PWM_GPIO_Port GPIOA
+#define MOTOR_CURR_Pin GPIO_PIN_6
+#define MOTOR_CURR_GPIO_Port GPIOA
+#define STATUS_LED_GRN_Pin GPIO_PIN_11
+#define STATUS_LED_GRN_GPIO_Port GPIOA
+#define STATUS_LED_RED_Pin GPIO_PIN_12
+#define STATUS_LED_RED_GPIO_Port GPIOA
 #define CONTROL_BTN_Pin GPIO_PIN_15
 #define CONTROL_BTN_GPIO_Port GPIOA
 
