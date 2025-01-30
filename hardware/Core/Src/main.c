@@ -31,6 +31,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define CURRENT_THRESHOLD 10 // above this value, there is an overcurrent
 
 /* USER CODE END PD */
 
@@ -71,7 +72,9 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 
-	uint16_t AD_RES = 0; // to hold the result
+	uint16_t AD_POT_RES = 0; // to hold the result
+	uint16_t ADC_CURRENT = 0; // to hold MOTOR current
+	uint8_t CONVERTED_CURRENT = 0; // converted current
 
   /* USER CODE END 1 */
 
@@ -107,13 +110,20 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+  ADC_CH_Cfg.Rank = ADC_REGULAR_RANK_1;
+  ADC_CH_Cfg.samplingTime = ADC_SAMPLETIME_1CYCLE_5;
+
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 
-	// start conversion
+	  // configure first channel - pontentiometer
+	  ADC_CH_Cfg.Channel = ADC_CHANNEL_4;
+	  HAL_ADC_ConfigChannel(&hadc1, &ADC_CH_Cfg);
+	  // start conversion
 	  HAL_ADC_Start(&hadc1);
 
 	  // poll for converted result
@@ -121,12 +131,32 @@ int main(void)
 	  HAL_ADC_PollForConversion(&hadc1, 1);
 
 	  // read ADC
-	  AD_RES = HAL_ADC_GetValue(&hadc1);
+	  AD_POT_RES = HAL_ADC_GetValue(&hadc1);
 
 	  // this part here controls the motor PWM signal,
 	  // varying the signal based on the Potentiometer value
-	  TIM2->CCR1 = (AD_RES << 4);
+	  TIM2->CCR1 = (AD_POT_RES << 4);
 	  HAL_Delay(1);
+
+
+	  //===== over-current protection ===============
+	  // configure second channel - ACS current meter
+	  ADC_CH_Cfg.Channel = ADC_CHANNEL_6;
+	  HAL_ADC_ConfigChannel(&hadc1, &ADC_CH_Cfg);
+	  // read the ADC value from the current pin
+	  HAL_ADC_PollForConversion(&hadc1, 1);
+	  ADC_CURRENT = HAL_ADC_GetValue(&hadc1);_
+
+	  // convert to real current value
+	  // assuming ADC midpoint is 1.65V
+	  CONVERTED_CURRENT = (1.65 - (ADC_CURRENT * 3.3/4095)) * 0.185;
+
+	  // check against the threshold
+	  if(CONVERTED_CURRENT > CURRENT_THRESHOLD) {
+		  // fault, turn off the motor
+		  // set PWM to 0% duty cycle
+		  TIM2->CCR1 = 0;
+	  }
 
   }
   /* USER CODE END 3 */
