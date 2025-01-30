@@ -46,6 +46,7 @@ ADC_HandleTypeDef hadc1;
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
+uint8_t fault_detected = 0; // set to 1 to indicate over-current fault
 
 /* USER CODE END PV */
 
@@ -56,10 +57,33 @@ static void MX_ADC1_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
+int startButtonPressed();
+void LEDControl();
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+/**
+ * Check the START/STOP button
+ */
+int startButtonPressed() {
+	if(HAL_)
+}
+
+/*
+ * Handles the status LEDs
+ */
+void LEDControl() {
+	if(fault_detected) {
+		HAL_GPIO_WritePin(GPIOA, STATUS_LED_GRN_Pin, 0);
+		HAL_GPIO_WritePin(GPIOA, STATUS_LED_RED_Pin, 1);
+	} else {
+		HAL_GPIO_WritePin(GPIOA, STATUS_LED_GRN_Pin, 1);
+		HAL_GPIO_WritePin(GPIOA, STATUS_LED_RED_Pin, 0);
+	}
+}
 
 /* USER CODE END 0 */
 
@@ -138,7 +162,6 @@ int main(void)
 	  TIM2->CCR1 = (AD_POT_RES << 4);
 	  HAL_Delay(1);
 
-
 	  //===== over-current protection ===============
 	  // configure second channel - ACS current meter
 	  ADC_CH_Cfg.Channel = ADC_CHANNEL_6;
@@ -156,7 +179,13 @@ int main(void)
 		  // fault, turn off the motor
 		  // set PWM to 0% duty cycle
 		  TIM2->CCR1 = 0;
+		  fault_detected= 1;
+	  } else {
+		  fault_detected = 0; // reset flag
 	  }
+
+	  // control status LED based on fault flag
+	  LEDControl();
 
   }
   /* USER CODE END 3 */
