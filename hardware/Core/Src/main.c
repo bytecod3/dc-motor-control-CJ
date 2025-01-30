@@ -46,6 +46,8 @@ ADC_HandleTypeDef hadc1;
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
+uint8_t press_count = 0; // assuming a push button
+uint8_t is_pressed = 0;
 uint8_t fault_detected = 0; // set to 1 to indicate over-current fault
 
 /* USER CODE END PV */
@@ -67,9 +69,14 @@ void LEDControl();
 
 /**
  * Check the START/STOP button
+ * No de-bounce is implemented
  */
 int startButtonPressed() {
-	if(HAL_)
+	if(HAL_GPIO_ReadPin(CONTROL_BTN_GPIO_Port, CONTROL_BTN_Pin) == GPIO_PIN_RESET){
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 /*
@@ -77,11 +84,11 @@ int startButtonPressed() {
  */
 void LEDControl() {
 	if(fault_detected) {
-		HAL_GPIO_WritePin(GPIOA, STATUS_LED_GRN_Pin, 0);
-		HAL_GPIO_WritePin(GPIOA, STATUS_LED_RED_Pin, 1);
+		HAL_GPIO_WritePin(GPIOA, STATUS_LED_GRN_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOA, STATUS_LED_RED_Pin, GPIO_PIN_SET);
 	} else {
-		HAL_GPIO_WritePin(GPIOA, STATUS_LED_GRN_Pin, 1);
-		HAL_GPIO_WritePin(GPIOA, STATUS_LED_RED_Pin, 0);
+		HAL_GPIO_WritePin(GPIOA, STATUS_LED_GRN_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOA, STATUS_LED_RED_Pin, GPIO_PIN_RESET);
 	}
 }
 
@@ -124,8 +131,7 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
-  // start the PWM channel 1 timer 2
-  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+
 
   // calibrate at startup
   HAL_ADCEx_Calibration_Start(&hadc1);
@@ -144,7 +150,22 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  // configure first channel - pontentiometer
+	  // check if start button pressed
+	  if(startButtonPressed()) {
+		  press_count++;
+	  }
+
+	  // check number of presses
+	  if(press_count == 1) {
+		  // first press, start the motor
+		  // start the PWM channel 1 timer 2 - output to motor speed control
+		  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+	  } else if(press_count == 2) {
+		  HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1);
+		  press_count = 0;
+	  }
+
+	  // configure first channel - potentiometer
 	  ADC_CH_Cfg.Channel = ADC_CHANNEL_4;
 	  HAL_ADC_ConfigChannel(&hadc1, &ADC_CH_Cfg);
 	  // start conversion
