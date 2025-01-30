@@ -24,7 +24,7 @@ The motor that can be used with design is listed below:
 |IN-RUSH CURRENT|8A, <45A|
 |MAX LOAD CURRENT|<45A|
 
-### MOSFET design 
+### MOSFET selection 
 The currents stated above were determined by the MOSFET I decided to use. I used IRLZ44N, which is a N-channel MOSFET with a MAX Id of 45A, more than capable for the selected motor.
 
 ### Schematic files 
@@ -42,6 +42,7 @@ Following the schematic above, the following PCB was designed.
 ![pcb](./pcb-images/top-outline.png)
 
 ## Firmware design
+The firmware I wrote is in the ```firmware``` folder.
 ### General flow 
 
 
