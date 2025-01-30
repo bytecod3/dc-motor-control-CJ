@@ -80,7 +80,7 @@ int startButtonPressed() {
 }
 
 /*
- * Handles the status LEDs
+ * @brief Handles the status LEDs
  */
 void LEDControl() {
 	if(fault_detected) {
@@ -130,8 +130,6 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-
-
 
   // calibrate at startup
   HAL_ADCEx_Calibration_Start(&hadc1);
@@ -189,7 +187,7 @@ int main(void)
 	  HAL_ADC_ConfigChannel(&hadc1, &ADC_CH_Cfg);
 	  // read the ADC value from the current pin
 	  HAL_ADC_PollForConversion(&hadc1, 1);
-	  ADC_CURRENT = HAL_ADC_GetValue(&hadc1);_
+	  ADC_CURRENT = HAL_ADC_GetValue(&hadc1);
 
 	  // convert to real current value
 	  // assuming ADC midpoint is 1.65V

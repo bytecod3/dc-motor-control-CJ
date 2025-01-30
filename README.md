@@ -43,13 +43,95 @@ Following the schematic above, the following PCB was designed.
 
 ## Firmware design
 The firmware I wrote is in the ```firmware``` folder.
-### General flow 
+### General flow
+
+### START/STOP
+I assumed a momentary push button for this logic. When the used presses the button the first time, the motor starts. 
+
+Pressing the push button the second time stops the motor. This is represented in the flowchart below:
+
+![start-stop logic](./misc/start-stop.png)
+
+### Speed control input signal and PWM control signal
+For this part I perform a SINGLE MODE SCAN on the ADC CHANNEL 4 which is connected to the potentiometer pin. This value is then LEFT shifted by 4 to fit within the 16-bit TIMER value. After this I write the value to the Timer CCR1 register which sets the PWM. The snippet is shown below:
+
+```c
+
+	  // configure first channel - potentiometer
+	  ADC_CH_Cfg.Channel = ADC_CHANNEL_4;
+	  HAL_ADC_ConfigChannel(&hadc1, &ADC_CH_Cfg);
+	  // start conversion
+	  HAL_ADC_Start(&hadc1);
+
+	  // poll for converted result
+	  // with a timeout of 1 second
+	  HAL_ADC_PollForConversion(&hadc1, 1);
+
+	  // read ADC
+	  AD_POT_RES = HAL_ADC_GetValue(&hadc1);
+
+	  // this part here controls the motor PWM signal,
+	  // varying the signal based on the Potentiometer value
+	  TIM2->CCR1 = (AD_POT_RES << 4);
+	  HAL_Delay(1);
+
+```
 
 
-### Speed control input signal 
+### Overcurrent detection 
+For overcurrent detection, I used the ACS712 to read motor current. I read this value using the ADC and perfom conversion. SINGLE SCAN MODE is used t read the ADC1_CHANNEL_6 to which the CURRENT_SENSE pin is connected. 
 
-### PWM control signal
+```c
+ //===== over-current protection ===============
+	  // configure second channel - ACS current meter
+	  ADC_CH_Cfg.Channel = ADC_CHANNEL_6;
+	  HAL_ADC_ConfigChannel(&hadc1, &ADC_CH_Cfg);
+	  // read the ADC value from the current pin
+	  HAL_ADC_PollForConversion(&hadc1, 1);
+	  ADC_CURRENT = HAL_ADC_GetValue(&hadc1);
 
-### Start/stop
+
+```
+
+This value is then converted as follows: Since STM32 ADC Vref is 3.3V, the midpoint is 1.65V. The resolution per Amp of the ACS712 is 0.185V, which means we get 0.185V for every ampere read. I perfomed the following conversion to convert DC readings to real current values.
+
+```c
+    // convert to real current value
+    // assuming ADC midpoint is 1.65V
+    CONVERTED_CURRENT = (1.65 - (ADC_CURRENT * 3.3/4095)) * 0.185;
+```
+
+The conveted value is checked against a set current THRESHOLD to check for fault.
+
+```c
+    // check against the threshold
+    if(CONVERTED_CURRENT > CURRENT_THRESHOLD) {
+        // fault, turn off the motor
+        // set PWM to 0% duty cycle
+        TIM2->CCR1 = 0;
+        fault_detected= 1;
+    } else {
+        fault_detected = 0; // reset flag
+    }
+
+```
 
 ### Status indication 
+For status indication, I two LEDS that turn ON/OFF based on a set ```fault_detected``` flag. If the flag is SET, the RED led turns ON, green turns OFF. and vice versa. 
+
+```c
+/*
+ * @brief Handles the status LEDs
+ */
+void LEDControl() {
+	if(fault_detected) {
+		HAL_GPIO_WritePin(GPIOA, STATUS_LED_GRN_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOA, STATUS_LED_RED_Pin, GPIO_PIN_SET);
+	} else {
+		HAL_GPIO_WritePin(GPIOA, STATUS_LED_GRN_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOA, STATUS_LED_RED_Pin, GPIO_PIN_RESET);
+	}
+}
+
+
+```
